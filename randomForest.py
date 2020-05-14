@@ -8,11 +8,15 @@ from sklearn.tree import DecisionTreeRegressor # Import Decision Tree Classifier
 from sklearn.model_selection import GridSearchCV, cross_val_score, RandomizedSearchCV
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import confusion_matrix
+import matplotlib.pyplot as plt
+from sklearn.metrics import ConfusionMatrixDisplay
+import seaborn as sn
 
 
-def regression_forest(path, path_test):
+
+def regression_forest(path, path_test, pred):
     data = pd.read_excel(path)
-    pred = 'p-disqualified-votes'
     test = pd.read_excel(path, path_test)
     y = data[pred]
 
@@ -39,18 +43,58 @@ def regression_forest(path, path_test):
 
     predicts = best_forest.predict(x_test)
 
-    predicts = 1-predicts
+    return predicts
 
-    results = pd.read_excel(path, 'test-discription')
 
-    noremlized_predicts = predicts*results['eligble-votes']
+def predict_kosher_votes(path, path_test, pred):
+    predicts = regression_forest(path, path_test,pred)
+
+    predicts = 1 - predicts
+
+    results = pd.read_excel(path, 'test-kosher-discription')
+
+    noremlized_predicts = predicts * results['eligble-votes']
 
     print(list(noremlized_predicts))
 
-    mse = metrics.mean_squared_error(test[pred], predicts)
+    return noremlized_predicts
 
-    print("mse: "+str(mse))
+def predict_disqualified_votes(path, path_test, pred):
+    predicts = regression_forest(path, path_test,pred)
+    discriptions = pd.read_excel(path, 'test-disqualified-discription')
+    boolean_predictions = []
+    for i in range(len(predicts)):
+        if predicts[i] >= 0.008:
+            boolean_predictions.append(True)
+        else:
+            boolean_predictions.append(False)
 
-    return mse
+    dis = discriptions['disqualified-votes']
+    eli_votes = discriptions['eligble-votes']
 
-regression_forest('predictKosherVotes.xlsx', 'test')
+    true_vals = dis/eli_votes
+    boolean_true = []
+    for i in range(len(true_vals)):
+        if true_vals[i] >= 0.008:
+            boolean_true.append(True)
+        else:
+            boolean_true.append(False)
+
+    cm = confusion_matrix(boolean_true, boolean_predictions)
+
+    ax = plt.subplot()
+    sn.heatmap(cm, annot=True, ax = ax, fmt = ".1f")
+
+    ax.set_xlabel('Predicted labels')
+    ax.set_ylabel('True labels')
+    ax.set_title('Confusion Matrix')
+    ax.xaxis.set_ticklabels(['Put Observation', 'Dont Put Observation'])
+    ax.yaxis.set_ticklabels(['Put Observation', 'Dont Put Observation'])
+
+    plt.show()
+
+    return predicts
+
+predict_disqualified_votes('predictKosherVotes.xlsx', 'test-disqualified', 'p-disqualified-votes')
+#predict_kosher_votes('predictKosherVotes.xlsx', 'test-kosher', 'p-disqualified-votes')
+

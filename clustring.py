@@ -11,6 +11,8 @@ from xlrd import open_workbook
 from xlutils.copy import copy
 from sklearn.mixture import GaussianMixture
 from sklearn.decomposition import PCA
+from sklearn.cluster import AgglomerativeClustering
+import scipy.cluster.hierarchy as sch
 sns.set()
 
 def GMMAnalyze(path):
@@ -33,6 +35,17 @@ def kMeansAnalyze(path):
     results_df['Cluster'] = scores
     results_df.to_excel('clusteringScoresKmeans.xlsx')
 
+
+def hierarchyAnalyze(path):
+    df = pd.read_excel(path)
+    df = df.drop(columns=['town-symbol'])
+    hc = AgglomerativeClustering(n_clusters=6,affinity='euclidean',linkage='complete')
+    scores = hc.fit_predict(df)
+    results_df = pd.read_excel('townsSymbols.xlsx')
+    results_df['Cluster'] = scores
+    results_df.to_excel('clusteringScoresHierarchy.xlsx')
+
+
 def elbow_met(df):
     from scipy.spatial.distance import cdist
     # k means determine k
@@ -51,6 +64,6 @@ def elbow_met(df):
 
 
 
-kMeansAnalyze('ElectionPatternParties.xlsx')
+hierarchyAnalyze('ElectionPatternParties.xlsx')
 
 
